@@ -1,0 +1,81 @@
+@Entity
+public class Content {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String uri;
+    @Lob
+    private String paragraphs;
+    private long keywordOccurrenceFrequency;
+
+    // getters and setters
+}
+
+
+
+
+
+public interface ContentRepository extends JpaRepository<Content, Long> {
+    // Define custom queries here if needed
+}
+
+
+
+
+
+public class ContentDTO {
+    private String keyword;
+    private String uri;
+    private String paragraphs;
+
+    // getters and setters
+}
+
+
+
+
+@Service
+public class ContentService {
+    @Autowired
+    private ContentRepository contentRepository;
+
+    public List<Content> filterContentByKeywordFrequency(String keyword) {
+        List<Content> contentList = contentRepository.findAll();
+
+        // Calculate the keyword occurrence frequency for each content
+        contentList.forEach(content -> {
+            long frequency = countKeywordFrequency(content.getParagraphs(), keyword);
+            content.setKeywordOccurrenceFrequency(frequency);
+        });
+
+        // Sort the content based on keyword frequency in descending order
+        contentList.sort(Comparator.comparingLong(Content::getKeywordOccurrenceFrequency).reversed());
+
+        // Return the top 10 results
+        return contentList.stream().limit(10).collect(Collectors.toList());
+    }
+
+    private long countKeywordFrequency(String paragraphs, String keyword) {
+        // Implement keyword counting logic here
+        // This depends on your specific requirements and could involve regular expressions or string matching.
+        // Here's a simplified example:
+        return paragraphs.split(keyword).length - 1;
+    }
+}
+
+
+
+
+
+@RestController
+@RequestMapping("/api/content-filter")
+public class ContentFilterController {
+    @Autowired
+    private ContentService contentService;
+
+    @GetMapping("/filter-by-keyword")
+    public List<Content> filterContentByKeyword(@RequestParam String keyword) {
+        return contentService.filterContentByKeywordFrequency(keyword);
+    }
+}
+
